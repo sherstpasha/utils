@@ -51,13 +51,11 @@ class ImageFolderToTensor(Dataset):
         return len(self.images)
 
     def __getitem__(self, idx):
-        img_name = os.path.join(self.image_dir, self.images[idx])
-        image = Image.open(img_name).convert('RGB')
-
+        img_path = os.path.join(self.image_dir, self.images[idx])
+        image = Image.open(img_path).convert('RGB')
         if self.transform:
             image = self.transform(image)
-
-        return image
+        return image, img_path
 
 
 def extract_features(image_folder_path, batch_size=32, image_size=(256, 256), load_path=None):
@@ -76,11 +74,13 @@ def extract_features(image_folder_path, batch_size=32, image_size=(256, 256), lo
     model.to(device)
     
     features = []
+    paths = []
     with torch.no_grad():
-        for images in dataloader:
+        for images, image_paths in dataloader:
             images = images.to(device)
             outputs = model(images)
             features.append(outputs.cpu().detach())
+            paths.extend(image_paths)
 
     features = torch.cat(features, dim=0)
-    return features
+    return features, paths
